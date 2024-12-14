@@ -85,10 +85,7 @@ fn main() {
     let input = "src/test.txt";
     let strings = match file_reader(input) {
         Ok(out) => out,
-        Err(e) => {
-            println!("Error: {e}");
-            String::new()
-        }
+        Err(e) => return println!("Error: {e}"),
     };
     let tokens = tokeniser(&strings);
     println!("{:?}", tokeniser(&strings));
