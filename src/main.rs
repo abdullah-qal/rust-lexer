@@ -1,6 +1,6 @@
+use std::fmt;
 use std::fs;
 use thiserror::Error;
-use std::fmt;
 
 enum Expr<'a> {
     Atom(&'a str),
@@ -54,31 +54,33 @@ fn tokeniser(s: &str) -> Vec<&str> {
     tokens
 }
 fn parser(v: Vec<&str>) -> Result<Vec<Expr<'_>>, LexError> {
-    let mut output: Vec<Expr<'_>> = Vec::new();
     let mut stack = Vec::new();
-    let mut in_list = false;
-    for (index, &value) in v.iter().enumerate() {
+    let mut current_list = Vec::new();
+
+    for &value in v.iter() {
         if value == "(" {
-            stack.push(index);
-            in_list = true;
+            stack.push(current_list);
+            current_list = Vec::new();
         } else if value == ")" {
-            let open_index = stack.pop().ok_or_else(|| LexError::UnpairedParentheses())?;
-            output.push(Expr::List(
-                v[open_index + 1..index]
-                    .iter()
-                    .map(|s| Expr::Atom(*s))
-                    .collect(),
-            ));
-            in_list = false;
-        } else if !in_list {
-            output.push(Expr::Atom(value))
+            let list = current_list;
+            if let Some(prev_list) = stack.pop() {
+                current_list = prev_list;
+                current_list.push(Expr::List(list)); 
+            } else {
+                return Err(LexError::UnpairedParentheses());
+            }
+        } else {
+            current_list.push(Expr::Atom(value));
         }
     }
+
     if !stack.is_empty() {
         return Err(LexError::UnpairedParentheses());
     }
-    Ok(output)
+
+    Ok(current_list)
 }
+
 fn main() {
     let input = "src/test.txt";
     let strings = match file_reader(input) {
